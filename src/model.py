@@ -94,22 +94,32 @@ class RobertaGetPoolFeature(BertPreTrainedModel):
 
 
 class Ensemble(nn.Module):
-    def __init__(self, args, config1, config2, model1, model2, num_labels):
+    def __init__(self, args, config1, config2, model1, model2, config3=None, model3=None, num_labels=0):
         super(Ensemble, self).__init__()
         self.model1 = model1
         self.model2 = model2
+        self.model3 = model3
         self.dropout = nn.Dropout(0.1)
         self.num_labels = num_labels
 
-        dim = config1.hidden_size + config2.hidden_size
+        dim = config1.hidden_size + config2.hidden_size + (config3.hidden_size if config3 else 0)
         self.linear1 = nn.Linear(dim, dim // 2)
         self.classifier = nn.Linear(dim // 2, num_labels)
 
-    def forward(self, input1, input2, labels=None):
+    def forward(self, input1, input2, input3=None, labels=None):
         output1 = self.model1(**input1)
         output2 = self.model2(**input2)
         weights = torch.cat((output1, output2), 1)
 
+        if self.model3:
+            if input3 is None:
+                raise ValueError("Currently using three model ensemble, the third input cannot be None")
+            else:
+                output3 = self.model3(**input3)
+                weights = torch.cat((output1, output2, output3), 1)
+        else:
+            weights = torch.cat((output1, output2), 1)
+        
         weights = self.linear1(weights)
         weights = self.dropout(weights)
         logits = self.classifier(weights)

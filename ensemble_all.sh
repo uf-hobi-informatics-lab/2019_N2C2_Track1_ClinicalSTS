@@ -35,7 +35,7 @@ do
             --data_dir $CLINICAL_DIR/sample${i} \
             --ensemble_pretrained_model $STS_MODEL \
             --task_name sts-clinical \
-            --output_dir $CV_OUTPUT/${b}_${ep}/sample${i} \
+            --output_dir $CV_OUTPUT/${ep}/sample${i} \
             --max_seq_length 160 \
             --do_train \
             --per_gpu_train_batch_size 2 \
