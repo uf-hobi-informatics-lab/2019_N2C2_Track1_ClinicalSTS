@@ -28,7 +28,7 @@ from transformers import (
     XLNetTokenizer,
     get_linear_schedule_with_warmup,
 )
-from .model import (
+from model import (
     BertGetPoolFeatures,
     XLNetGetPoolFeature,
     RobertaGetPoolFeature,
@@ -36,11 +36,11 @@ from .model import (
     EnsembleAll
 )
 
-from .data_utils import glue_compute_metrics as compute_metrics
+from data_utils import glue_compute_metrics as compute_metrics
 from transformers.data.processors import glue_convert_examples_to_features as convert_examples_to_features
-from .data_utils import output_modes 
-from .data_utils import processors 
-from .single_task import set_seed
+from data_utils import output_modes 
+from data_utils import processors 
+from single_task import set_seed
 
 logger = logging.getLogger("ensemble_two")
 
@@ -155,7 +155,7 @@ def train(args, train_dataset, model):
             assert batch[3].equal(
                 batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
 
-            outputs = model(inputs1, inputs2, batch[3])
+            outputs = model(inputs1, inputs2, labels=batch[3])
             # model outputs are always tuple in transformers (see doc)
             loss = outputs[0]
 
@@ -387,7 +387,7 @@ def evaluate(args, eval_dataset, model, prefix=""):
             assert batch[3].equal(
                 batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
 
-            outputs = model(inputs1, inputs2, batch[3])
+            outputs = model(inputs1, inputs2, labels=batch[3])
             tmp_eval_loss, logits = outputs[:2]
 
             eval_loss += tmp_eval_loss.mean().item()
@@ -736,10 +736,10 @@ def main():
         "--do_lower_case", action="store_true", help="Set this flag if you are using an uncased model.",
     )
     parser.add_argument(
-        "--per_gpu_train_batch_size", default=8, type=int, help="Batch size per GPU/CPU for training.",
+        "--per_gpu_train_batch_size", default=4, type=int, help="Batch size per GPU/CPU for training.",
     )
     parser.add_argument(
-        "--per_gpu_eval_batch_size", default=8, type=int, help="Batch size per GPU/CPU for evaluation.",
+        "--per_gpu_eval_batch_size", default=4, type=int, help="Batch size per GPU/CPU for evaluation.",
     )
     parser.add_argument(
         "--gradient_accumulation_steps",
@@ -900,6 +900,8 @@ def main():
             args.tokenizer2_name if args.tokenizer2_name else args.model2_name_or_path,
             do_lower_case=args.do_lower_case,
         )
+        config3 = None
+        tokenizer3 = None
         if args.model3_type:
             config3 = config_class3.from_pretrained(
                 args.config3_name if args.config3_name else args.model3_name_or_path,

@@ -33,10 +33,10 @@ from transformers import (
     XLNetTokenizer,
     get_linear_schedule_with_warmup,
 )
-from .data_utils import glue_compute_metrics as compute_metrics
+from data_utils import glue_compute_metrics as compute_metrics
 from transformers.data.processors import glue_convert_examples_to_features as convert_examples_to_features
-from .data_utils import output_modes
-from .data_utils import processors
+from data_utils import output_modes
+from data_utils import processors
 
 logger = logging.getLogger(__name__)
 
