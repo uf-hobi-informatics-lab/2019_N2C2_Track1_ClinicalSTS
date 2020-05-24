@@ -106,7 +106,7 @@ class Ensemble(nn.Module):
         self.linear1 = nn.Linear(dim, dim // 2)
         self.classifier = nn.Linear(dim // 2, num_labels)
 
-    def forward(self, input1, input2, input3=None, labels=None):
+    def forward(self, input1, input2, input3, labels):
         output1 = self.model1(**input1)
         output2 = self.model2(**input2)
         weights = torch.cat((output1, output2), 1)

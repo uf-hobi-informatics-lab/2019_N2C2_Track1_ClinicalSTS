@@ -151,153 +151,18 @@ def train(args, train_dataset, model):
                     batch[6] if args.model2_type in [
                         "bert", "xlnet", "albert"] else None
                 )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
+            inputs3 = None
+            if args.model3_type:
+                inputs3 = {
+                    "input_ids": batch[8], "attention_mask": batch[9], "labels": batch[11]}
+                if args.model3_type != "distilbert":
+                    inputs3["token_type_ids"] = (
+                        batch[10] if args.model3_type in [
+                            "bert", "xlnet", "albert"] else None
+                    )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
 
             assert batch[3].equal(
                 batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
-
-            outputs = model(inputs1, inputs2, labels=batch[3])
-            # model outputs are always tuple in transformers (see doc)
-            loss = outputs[0]
-
-            if args.n_gpu > 1:
-                loss = loss.mean()  # mean() to average on multi-gpu parallel training
-            if args.gradient_accumulation_steps > 1:
-                loss = loss / args.gradient_accumulation_steps
-
-            loss.backward()
-
-            tr_loss += loss.item()
-            if (step + 1) % args.gradient_accumulation_steps == 0:
-                torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), args.max_grad_norm)
-
-                optimizer.step()
-                scheduler.step()  # Update learning rate schedule
-                model.zero_grad()
-                global_step += 1
-
-                if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
-                    logs = {}
-                    loss_scalar = (tr_loss - logging_loss) / args.logging_steps
-                    learning_rate_scalar = scheduler.get_lr()[0]
-                    logs["learning_rate"] = learning_rate_scalar
-                    logs["loss"] = loss_scalar
-                    logging_loss = tr_loss
-
-                    print(json.dumps({**logs, **{"step": global_step}}))
-
-            if args.max_steps > 0 and global_step > args.max_steps:
-                epoch_iterator.close()
-                break
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
-
-    return global_step, tr_loss / global_step
-
-
-def train_all(args, train_dataset, model):
-    args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    train_sampler = RandomSampler(
-        train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-    train_dataloader = DataLoader(
-        train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
-
-    if args.max_steps > 0:
-        t_total = args.max_steps
-        args.num_train_epochs = args.max_steps // (
-            len(train_dataloader) // args.gradient_accumulation_steps) + 1
-    else:
-        t_total = len(
-            train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
-
-    # Prepare optimizer and schedule (linear warmup and decay)
-    no_decay = ["bias", "LayerNorm.weight"]
-    optimizer_grouped_parameters = [
-        {
-            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-            "weight_decay": args.weight_decay,
-        },
-        {"params": [p for n, p in model.named_parameters() if any(
-            nd in n for nd in no_decay)], "weight_decay": 0.0},
-    ]
-    if args.warmup_ratio:
-        warmup_steps = np.dtype('int64').type(args.warmup_ratio * t_total)
-    else:
-        warmup_steps = args.warmup_steps
-
-    optimizer = AdamW(optimizer_grouped_parameters,
-                      lr=args.learning_rate, eps=args.adam_epsilon)
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total
-    )
-
-    # Train!
-    logger.info("***** Running training *****")
-    logger.info("  Num examples = %d", len(train_dataset))
-    logger.info("  Num Epochs = %d", args.num_train_epochs)
-    logger.info("  Instantaneous batch size per GPU = %d",
-                args.per_gpu_train_batch_size)
-    logger.info(
-        "  Total train batch size (w. parallel, distributed & accumulation) = %d",
-        args.train_batch_size
-        * args.gradient_accumulation_steps
-        * (torch.distributed.get_world_size() if args.local_rank != -1 else 1),
-    )
-    logger.info("  Gradient Accumulation steps = %d",
-                args.gradient_accumulation_steps)
-    logger.info("  Total optimization steps = %d", t_total)
-
-    global_step = 0
-    epochs_trained = 0
-    steps_trained_in_current_epoch = 0
-
-    tr_loss, logging_loss = 0.0, 0.0
-    model.zero_grad()
-    train_iterator = trange(
-        epochs_trained, int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0],
-    )
-    set_seed(args)  # Added here for reproductibility
-    for _ in train_iterator:
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration",
-                              disable=args.local_rank not in [-1, 0])
-        for step, batch in enumerate(epoch_iterator):
-
-            # Skip past any already trained steps if resuming training
-            if steps_trained_in_current_epoch > 0:
-                steps_trained_in_current_epoch -= 1
-                continue
-
-            model.train()
-            batch = tuple(t.to(args.device) for t in batch)
-            inputs1 = {
-                "input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
-            if args.model1_type != "distilbert":
-                inputs1["token_type_ids"] = (
-                    batch[2] if args.model1_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-            inputs2 = {
-                "input_ids": batch[4], "attention_mask": batch[5], "labels": batch[7]}
-            if args.model2_type != "distilbert":
-                inputs2["token_type_ids"] = (
-                    batch[6] if args.model2_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-
-            inputs3 = {
-                "input_ids": batch[8], "attention_mask": batch[9], "labels": batch[11]}
-            if args.model1_type != "distilbert":
-                inputs1["token_type_ids"] = (
-                    batch[10] if args.model1_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-
-            assert batch[3].equal(
-                batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
-
-            assert batch[3].equal(
-                batch[11]), "input1 and input3 labels are not the same {} vs {}".format(batch[3], batch[11])
 
             outputs = model(inputs1, inputs2, inputs3, batch[3])
             # model outputs are always tuple in transformers (see doc)
@@ -368,120 +233,30 @@ def evaluate(args, eval_dataset, model, prefix=""):
         batch = tuple(t.to(args.device) for t in batch)
 
         with torch.no_grad():
-            inputs1 = {
-                "input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
+            inputs1 = {"input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
             if args.model1_type != "distilbert":
                 inputs1["token_type_ids"] = (
                     batch[2] if args.model1_type in [
                         "bert", "xlnet", "albert"] else None
                 )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
 
-            inputs2 = {
-                "input_ids": batch[4], "attention_mask": batch[5], "labels": batch[7]}
+            inputs2 = {"input_ids": batch[4], "attention_mask": batch[5], "labels": batch[7]}
             if args.model2_type != "distilbert":
                 inputs2["token_type_ids"] = (
                     batch[6] if args.model2_type in [
                         "bert", "xlnet", "albert"] else None
                 )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
 
+            inputs3 = None
+            if args.model3_type:
+                inputs3 = {"input_ids": batch[8], "attention_mask": batch[9], "labels": batch[11]}
+                if args.model1_type != "distilbert":
+                    inputs3["token_type_ids"] = (
+                        batch[10] if args.model3_type in [
+                            "bert", "xlnet", "albert"] else None
+                    )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
             assert batch[3].equal(
                 batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
-
-            outputs = model(inputs1, inputs2, labels=batch[3])
-            tmp_eval_loss, logits = outputs[:2]
-
-            eval_loss += tmp_eval_loss.mean().item()
-        nb_eval_steps += 1
-        if preds is None:
-            preds = logits.detach().cpu().numpy()
-            out_label_ids = inputs1["labels"].detach().cpu().numpy()
-        else:
-            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-            out_label_ids = np.append(
-                out_label_ids, inputs1["labels"].detach().cpu().numpy(), axis=0)
-
-    eval_loss = eval_loss / nb_eval_steps
-    if args.output_mode == "classification":
-        preds = np.argmax(preds, axis=1)
-    elif args.output_mode == "regression":
-        preds = np.squeeze(preds)
-    result = compute_metrics(eval_task, preds, out_label_ids)
-    results.update(result)
-    # make the prefix dir
-    Path(os.path.join(eval_output_dir)).mkdir(exist_ok=True)
-    output_eval_file = os.path.join(
-        eval_output_dir, "eval_results.txt")
-
-    with open(output_eval_file, "w") as writer:
-        logger.info("***** Eval results {} *****".format(prefix))
-        writer.write("hyperparameter: batch %s, epoch %s\n" %
-                     (args.per_gpu_train_batch_size, args.num_train_epochs))
-        for key in sorted(result.keys()):
-            logger.info("  %s = %s", key, str(result[key]))
-            writer.write("%s = %s\n" % (key, str(result[key])))
-        logger.info(" %s = %s", "eval_loss", str(eval_loss))
-        writer.write("%s = %s\n" % ("eval_loss", str(eval_loss)))
-
-    return results
-
-
-def evaluate_all(args, eval_dataset, model, prefix=""):
-    eval_task = args.task_name
-    eval_output_dir = args.output_dir
-
-    results = {}
-    if not os.path.exists(eval_output_dir):
-        os.makedirs(eval_output_dir)
-
-    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
-
-    # use SequentialSampler here
-    eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(
-        eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
-
-    # Eval
-    logger.info("***** Running evaluation {} *****".format(prefix))
-    logger.info("  Num examples = %d", len(eval_dataset))
-    logger.info("  Batch size = %d", args.eval_batch_size)
-    eval_loss = 0.0
-    nb_eval_steps = 0
-    preds = None
-    out_label_ids = None
-    for batch in tqdm(eval_dataloader, desc="Evaluating"):
-        model.eval()
-        batch = tuple(t.to(args.device) for t in batch)
-
-        with torch.no_grad():
-            inputs1 = {
-                "input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
-            if args.model1_type != "distilbert":
-                inputs1["token_type_ids"] = (
-                    batch[2] if args.model1_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-
-            inputs2 = {
-                "input_ids": batch[4], "attention_mask": batch[5], "labels": batch[7]}
-            if args.model2_type != "distilbert":
-                inputs2["token_type_ids"] = (
-                    batch[6] if args.model2_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-
-            inputs3 = {
-                "input_ids": batch[8], "attention_mask": batch[9], "labels": batch[11]}
-            if args.model1_type != "distilbert":
-                inputs1["token_type_ids"] = (
-                    batch[10] if args.model1_type in [
-                        "bert", "xlnet", "albert"] else None
-                )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
-
-            assert batch[3].equal(
-                batch[7]), "training data labels are not the same {} vs {}".format(batch[3], batch[7])
-
-            assert batch[3].equal(
-                batch[11]), "input1 and input3 labels are not the same {} vs {}".format(batch[3], batch[11])
 
             outputs = model(inputs1, inputs2, inputs3, batch[3])
             tmp_eval_loss, logits = outputs[:2]
@@ -848,8 +623,10 @@ def main():
 
     args.model1_type = args.model1_type.lower()
     args.model2_type = args.model2_type.lower()
-    if args.model3_type:
-        args.model3_type = args.model3_type.lower()
+    args.model3_type = args.model3_type.lower()
+
+    if args.model3_type == 'none':
+        args.model3_type = None
 
     config_class1, model_class1, tokenizer_class1 = MODEL_CLASSES[args.model1_type]
     config_class2, model_class2, tokenizer_class2 = MODEL_CLASSES[args.model2_type]
@@ -994,7 +771,7 @@ def main():
         pred_dataset3 = load_and_cache_examples(
             args, args.model3_type, args.task_name, tokenizer3, predict=True) if args.model3_type else None
         
-        if eval_dataset3:
+        if pred_dataset3:
             pred_dataset = TensorDataset(*pred_dataset1, *pred_dataset2, *pred_dataset3)
         else:
             pred_dataset = TensorDataset(*pred_dataset1, *pred_dataset2)
