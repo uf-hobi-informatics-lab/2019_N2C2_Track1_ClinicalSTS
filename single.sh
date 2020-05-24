@@ -26,6 +26,7 @@ python $CLASSIFIER \
     --model_type $MODEL_TYPE \
     --model_name_or_path $MODEL_NAME \
     --task_name sts-b \
+    --gradient_accumulation_steps 1 \
     --output_dir $GEN_OUTPUT \
     --max_seq_length 160 \
     --do_train \
@@ -46,6 +47,7 @@ do
                 --model_type $MODEL_TYPE \
                 --model_name_or_path $STS_MODEL \
                 --task_name sts-clinical \
+                --gradient_accumulation_steps 1 \
                 --output_dir $CV_OUTPUT/${b}_${ep}/sample${i} \
                 --max_seq_length 160 \
                 --do_train \
@@ -66,6 +68,7 @@ python $CLASSIFIER \
     --task_name sts-clinical \
     --output_dir $REFIT_OUTPUT \
     --max_seq_length 160 \
+    --gradient_accumulation_steps 1 \
     --do_train \
     --per_gpu_train_batch_size 4 \
     --num_train_epochs 4 \

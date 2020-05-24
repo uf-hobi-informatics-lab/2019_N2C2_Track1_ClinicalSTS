@@ -32,6 +32,7 @@ python $CLASSIFIER \
     --output_dir $GEN_OUTPUT \
     --per_gpu_train_batch_size 8 \
     --max_seq_length 160 \
+    --gradient_accumulation_steps 1 \
     --do_train \
     --overwrite_cache \
     --overwrite_output_dir \
@@ -57,6 +58,7 @@ do
                 --task_name sts-clinical \
                 --output_dir $CV_OUTPUT/${b}_${ep}/sample${i} \
                 --max_seq_length 160 \
+                --gradient_accumulation_steps 1 \
                 --do_train \
                 --per_gpu_train_batch_size ${b} \
                 --num_train_epochs ${ep} \
@@ -81,6 +83,7 @@ python $CLASSIFIER \
     --output_dir $REFIT_OUTPUT \
     --max_seq_length 160 \
     --do_train \
+    --gradient_accumulation_steps 1 \
     --per_gpu_train_batch_size best_batch_size_from_5fold_cv \
     --num_train_epochs best_train_epoch_num_from_5fold_cv \
     --overwrite_cache \
