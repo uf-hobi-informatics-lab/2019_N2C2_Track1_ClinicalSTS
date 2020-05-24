@@ -27,8 +27,6 @@ python preprocess/cross_valid_generate.py \
 ```
 
 ## Training
-We provided options of three models: Bert, XLNet, Roberta
-
 Training and prediction processes are provided in the following scripts:  
 [single.sh](https://github.com/uf-hobi-informatics-lab/2019_N2C2_Track1_ClinicalSTS/blob/master/single.sh) Using a single model  
 [ensemble.sh](https://github.com/uf-hobi-informatics-lab/2019_N2C2_Track1_ClinicalSTS/blob/master/ensemble.sh) Using multi-model ensemble
