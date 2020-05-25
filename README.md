@@ -27,12 +27,9 @@ python preprocess/cross_valid_generate.py \
 ```
 
 ## Training
-We provided options of three models: Bert, XLNet, Roberta
-
 Training and prediction processes are provided in the following scripts:  
-[single.sh](https://github.com/mayinghan/2019_N2C2_Track1_ClinicalSTS/blob/master/single.sh) Using a single model  
-[ensemble&lowbar;two.sh](https://github.com/mayinghan/2019_N2C2_Track1_ClinicalSTS/blob/master/ensemble_two.sh) Using two-model ensembling  
-[ensemble&lowbar;all.sh](https://github.com/mayinghan/2019_N2C2_Track1_ClinicalSTS/blob/master/ensemble_all.sh) Using all-model ensembling  
+[single.sh](https://github.com/uf-hobi-informatics-lab/2019_N2C2_Track1_ClinicalSTS/blob/master/single.sh) Using a single model  
+[ensemble.sh](https://github.com/uf-hobi-informatics-lab/2019_N2C2_Track1_ClinicalSTS/blob/master/ensemble.sh) Using multi-model ensemble
 
 ## Models
 Theoretically support all models in https://huggingface.co/transformers/pretrained_models.html. However, we only used Bert, Roberta and XLNet in this task.
