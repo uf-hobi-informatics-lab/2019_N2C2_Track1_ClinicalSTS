@@ -20,7 +20,7 @@ def main(model, results_dir, eval_output_dir):
     )
     # create result file & dir
     # eval_output_dir = "../output/{}_5f_eval/".format(model)
-    Path(eval_output_dir).mkdir(exist_ok=True)
+    Path(eval_output_dir).mkdir(exist_ok=True, parents=True)
     # read all results
     # results_dir = "/home/ma.yingha/workspace/py3/clinicalsts/output/{}/tmp".format(
     #     model)
