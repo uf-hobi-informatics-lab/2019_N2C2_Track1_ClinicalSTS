@@ -61,6 +61,7 @@ def main(model, results_dir, eval_output_dir):
           best_batch = batch_size
         results += curr_result
 
+    results += f"Best epoch: {best_epoch}\nBest batch size: {best_batch}\nBest score: {best_pearson}"
     logger.info(results)
     eval_output = os.path.join(eval_output_dir, "5f-result.txt")
     with open(eval_output, "w") as f:

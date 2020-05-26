@@ -1,4 +1,4 @@
 python src/cross_valid_eval.py \
-  --model_type model_type \  # replace model_type with the model type name you are currently evaluating
-  --input_dir output/to/5_fold_cv/tmp \
-  --output_dir output/dir/to/eval/result
+	  --model_type bert_roberta \
+		--input_dir /home/ma.yingha/workspace/py3/project/2019_N2C2_Track1_ClinicalSTS/output/bert_roberta/tmp \
+ 	  --output_dir output/bert_roberta/
