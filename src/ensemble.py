@@ -628,80 +628,52 @@ def main():
     config_class2, model_class2, tokenizer_class2 = MODEL_CLASSES[args.model2_type]
     if args.model3_type:
         config_class3, model_class3, tokenizer_class3 = MODEL_CLASSES[args.model3_type]
-    
-    if args.ensemble_pretrained_model:
-        config1 = config_class1.from_pretrained(
-            args.config1_name if args.config1_name else args.model1_name_or_path,
-            num_labels=num_labels,
-        )
-        tokenizer1 = tokenizer_class1.from_pretrained(
-            args.tokenizer1_name if args.tokenizer1_name else args.model1_name_or_path,
-            do_lower_case=args.do_lower_case,
-        )
-        config2 = config_class2.from_pretrained(
-            args.config2_name if args.config2_name else args.model2_name_or_path,
-            num_labels=num_labels,
-        )
-        tokenizer2 = tokenizer_class2.from_pretrained(
-            args.tokenizer2_name if args.tokenizer2_name else args.model2_name_or_path,
-            do_lower_case=args.do_lower_case,
-        )
-        if args.model3_type:
-            config3 = config_class3.from_pretrained(
-                args.config3_name if args.config3_name else args.model3_name_or_path,
-                num_labels=num_labels,
-            )
-            tokenizer3 = tokenizer_class3.from_pretrained(
-                args.tokenizer3_name if args.tokenizer3_name else args.model3_name_or_path,
-                do_lower_case=args.do_lower_case,
-            )
-        model = torch.load(args.ensemble_pretrained_model)
-    elif args.model1_name_or_path and args.model2_name_or_path:
-        config1 = config_class1.from_pretrained(
-            args.config1_name if args.config1_name else args.model1_name_or_path,
-            num_labels=num_labels,
-        )
-        tokenizer1 = tokenizer_class1.from_pretrained(
-            args.tokenizer1_name if args.tokenizer1_name else args.model1_name_or_path,
-            do_lower_case=args.do_lower_case,
-        )
-        config2 = config_class2.from_pretrained(
-            args.config2_name if args.config2_name else args.model2_name_or_path,
-            num_labels=num_labels,
-        )
-        tokenizer2 = tokenizer_class2.from_pretrained(
-            args.tokenizer2_name if args.tokenizer2_name else args.model2_name_or_path,
-            do_lower_case=args.do_lower_case,
-        )
-        config3 = None
-        tokenizer3 = None
-        if args.model3_type:
-            config3 = config_class3.from_pretrained(
-                args.config3_name if args.config3_name else args.model3_name_or_path,
-                num_labels=num_labels,
-            )
-            tokenizer3 = tokenizer_class3.from_pretrained(
-                args.tokenizer3_name if args.tokenizer3_name else args.model3_name_or_path,
-                do_lower_case=args.do_lower_case,
-            )
-        model1 = model_class1.from_pretrained(
-            args.model1_name_or_path,
-            config=config1,
-        )
-        model2 = model_class2.from_pretrained(
-            args.model2_name_or_path,
-            config=config2,
-        )
-        model3 = model_class3.from_pretrained(
-            args.model3_name_or_path,
-            config=config3
-        ) if args.model3_type else None
-        # init ensemble model
-        model = Ensemble(args, config1, config2,
-                         model1, model2, config3=config3, model3=model3,num_labels=num_labels)
 
-    else:
-        raise ValueError("No model detected!")
+    config1 = config_class1.from_pretrained(
+        args.config1_name if args.config1_name else args.model1_name_or_path,
+        num_labels=num_labels,
+    )
+    tokenizer1 = tokenizer_class1.from_pretrained(
+        args.tokenizer1_name if args.tokenizer1_name else args.model1_name_or_path,
+        do_lower_case=args.do_lower_case,
+    )
+    config2 = config_class2.from_pretrained(
+        args.config2_name if args.config2_name else args.model2_name_or_path,
+        num_labels=num_labels,
+    )
+    tokenizer2 = tokenizer_class2.from_pretrained(
+        args.tokenizer2_name if args.tokenizer2_name else args.model2_name_or_path,
+        do_lower_case=args.do_lower_case,
+    )
+    config3 = None
+    tokenizer3 = None
+    if args.model3_type:
+        config3 = config_class3.from_pretrained(
+            args.config3_name if args.config3_name else args.model3_name_or_path,
+            num_labels=num_labels,
+        )
+        tokenizer3 = tokenizer_class3.from_pretrained(
+            args.tokenizer3_name if args.tokenizer3_name else args.model3_name_or_path,
+            do_lower_case=args.do_lower_case,
+        )
+    model1 = model_class1.from_pretrained(
+        args.model1_name_or_path,
+        config=config1,
+    )
+    model2 = model_class2.from_pretrained(
+        args.model2_name_or_path,
+        config=config2,
+    )
+    model3 = model_class3.from_pretrained(
+        args.model3_name_or_path,
+        config=config3
+    ) if args.model3_type else None
+    # init ensemble model
+    model = Ensemble(args, config1, config2,
+                        model1, model2, config3=config3, model3=model3,num_labels=num_labels)
+
+    if args.ensemble_pretrained_model:
+        model.load_state_dict(torch.load(args.ensemble_pretrained_model))
 
     model.to(args.device)
 
@@ -734,11 +706,11 @@ def main():
         logger.info("Saving model checkpoint to %s", args.output_dir)
         # Save a trained model, configuration and tokenizer using `save_pretrained()`.
         # They can then be reloaded using `from_pretrained()`
-        model_to_save = (
-            model.module if hasattr(model, "module") else model
-        )  # Take care of distributed/parallel training
-        torch.save(model_to_save, args.output_dir + "/pytorch_model.bin")
-
+        # model_to_save = (
+        #     model.module if hasattr(model, "module") else model
+        # )  # Take care of distributed/parallel training
+        # torch.save(model_to_save, args.output_dir + "/pytorch_model.bin")
+        torch.save(model.state_dict(), args.output_dir + "/pytorch_model.bin")
         # Good practice: save your training arguments together with the trained model
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
@@ -755,7 +727,7 @@ def main():
         else:
             eval_dataset = TensorDataset(*eval_dataset1, *eval_dataset2)
             
-        model = torch.load(args.output_dir + "/pytorch_model.bin")
+        model.load_state_dict(torch.load(args.output_dir + "/pytorch_model.bin"))
         model.to(args.device)
         prefix = args.data_dir.split("/")[-1]
         result = evaluate(args, eval_dataset, model, prefix=prefix)
@@ -771,7 +743,7 @@ def main():
             pred_dataset = TensorDataset(*pred_dataset1, *pred_dataset2, *pred_dataset3)
         else:
             pred_dataset = TensorDataset(*pred_dataset1, *pred_dataset2)
-        # model = torch.load(args.output_dir + "/pytorch_model.bin")
+        # model.load_state_dict(torch.load(args.output_dir + "/pytorch_model.bin"))
         model.to(args.device)
         prefix = "clinical-prediction"
         result = evaluate(args, pred_dataset, model, prefix=prefix)
