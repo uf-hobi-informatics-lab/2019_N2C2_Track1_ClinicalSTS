@@ -10,22 +10,17 @@ from pathlib import Path
 import logging
 
 
-def main(model, results_dir, eval_output_dir):
+def main(results_dir, eval_output_dir):
     logger = logging.getLogger("cv_result_eval")
-    # model = "bert-large"
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO
     )
     # create result file & dir
-    # eval_output_dir = "../output/{}_5f_eval/".format(model)
     Path(eval_output_dir).mkdir(exist_ok=True, parents=True)
-    # read all results
-    # results_dir = "/home/ma.yingha/workspace/py3/clinicalsts/output/{}/tmp".format(
-    #     model)
-    dirs = os.listdir(results_dir)
 
+    dirs = os.listdir(results_dir)
     results = "\n"
     best_pearson = 0.0
     best_epoch = 0
@@ -73,12 +68,6 @@ if __name__ == "__main__":
 
     # Required parameters
     parser.add_argument(
-        "--model_type",
-        default=None,
-        required=True,
-        help="Type of model you are currently training"
-    )
-    parser.add_argument(
         "--input_dir",
         default=None,
         required=True,
@@ -92,4 +81,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    main(args.model_type, args.input_dir, args.output_dir)
+    main(args.input_dir, args.output_dir)
