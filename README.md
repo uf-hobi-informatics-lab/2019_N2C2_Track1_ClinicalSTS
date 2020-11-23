@@ -41,3 +41,13 @@ Use the script [cv_eval.sh](https://github.com/uf-hobi-informatics-lab/2019_N2C2
 
 ## Models
 Theoretically support all models in https://huggingface.co/transformers/pretrained_models.html. However, we only used Bert, Roberta and XLNet in this task.
+
+## Citation
+- please cite our paper:
+>https://medinform.jmir.org/2020/11/e19735/
+```
+Yang X, He X, Zhang H, Ma Y, Bian J, Wu Y
+Measurement of Semantic Textual Similarity in Clinical Texts: Comparison of Transformer-Based Models
+JMIR Med Inform 2020;8(11):e19735
+DOI: 10.2196/19735
+```
